@@ -250,6 +250,7 @@ protected:
 	void Cmd_Reg8_Data8(void);				// command 51/54/55/5A..5D - Register, Data (8-bit)
 	void Cmd_CPort_Reg8_Data8(void);		// command 52/53/56..59/5E/5F - Port (in command byte), Register, Data (8-bit)
 	void Cmd_Port_Reg8_Data8(void);			// command D0..D2 - Port, Register, Data (8-bit)
+	void Cmd_MSM5205_Reg(void);				// command B3/B5..BB/BE/BF - Offset (8-bit), Data (8-bit)
 	void Cmd_Ofs8_Data8(void);				// command B3/B5..BB/BE/BF - Offset (8-bit), Data (8-bit)
 	void Cmd_Ofs16_Data8(void);				// command C5..C8/D3/D4/D6/E5 - Offset (16-bit), Data (8-bit)
 	void Cmd_Ofs8_Data16(void);				// unused - Offset (8-bit), Data (16-bit)
@@ -281,8 +282,8 @@ protected:
 	enum
 	{
 		_HDR_BUF_SIZE = 0x100,
-		_OPT_DEV_COUNT = 0x2b,
-		_CHIP_COUNT = 0x2b,
+		_OPT_DEV_COUNT = 0x2d,
+		_CHIP_COUNT = 0x2d,
 		_PCM_BANK_COUNT = 0x40
 	};
 	

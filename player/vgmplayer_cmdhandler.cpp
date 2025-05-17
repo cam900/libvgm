@@ -70,7 +70,7 @@
 	{0xFF, 0x00, &VGMPlayer::Cmd_invalid},              // 2F
 	{0x00, 0x02, &VGMPlayer::Cmd_SN76489},              // 30 SN76489 register write (2nd chip)
 	{0xFF, 0x02, &VGMPlayer::Cmd_AY_Stereo},            // 31 AY8910 stereo mask [chip type depends on data]
-	{0xFF, 0x02, &VGMPlayer::Cmd_unknown},              // 32
+	{0x2B, 0x02, &VGMPlayer::Cmd_MSM5205_Reg},          // 32 MSM5205
 	{0xFF, 0x02, &VGMPlayer::Cmd_unknown},              // 33
 	{0xFF, 0x02, &VGMPlayer::Cmd_unknown},              // 34
 	{0xFF, 0x02, &VGMPlayer::Cmd_unknown},              // 35
@@ -86,7 +86,7 @@
 	{0x00, 0x02, &VGMPlayer::Cmd_GGStereo},             // 3F GameGear stereo mask (2nd chip)
 	{0x29, 0x03, &VGMPlayer::Cmd_Ofs8_Data8},           // 40 Mikey register write
 	{0x2A, 0x03, &VGMPlayer::Cmd_K007232_Reg},          // 41 K007232 register write
-	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 42
+	{0x2C, 0x03, &VGMPlayer::Cmd_Ofs16_Data8},   	    // 42 K005289 register write
 	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 43
 	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 44
 	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 45
@@ -288,7 +288,7 @@
 	0x1B,	// 05 HuC6280
 	0x20,	// 06 SCSP
 	0x14,	// 07 NES APU
-	0xFF,	// 08
+	0x2B,	// 08 MSM5205
 	0xFF,	// 09
 	0xFF,	// 0A
 	0xFF,	// 0B
@@ -370,7 +370,7 @@
 	{0x27, 0},	// 92 C352
 	{0x28, 0},	// 93 GA20
 	{0x2A, 0},	// 94 K007232
-	{0xFF, 0},	// 95
+	{0x2C, 0},	// 95 K005289
 	{0xFF, 0},	// 96
 	{0xFF, 0},	// 97
 	{0xFF, 0},	// 98
@@ -1067,6 +1067,19 @@ void VGMPlayer::Cmd_Ofs8_Data8(void)
 		return;
 	
 	cDev->write8(cDev->base.defInf.dataPtr, fData[0x01] & 0x7F, fData[0x02]);
+	return;
+}
+
+void VGMPlayer::Cmd_MSM5205_Reg(void)
+{
+	UINT8 chipType = _CMD_INFO[fData[0x00]].chipType;
+	UINT8 chipID = (fData[0x01] & 0x80) >> 7;
+	CHIP_DEVICE* cDev = GetDevicePtr(chipType, chipID);
+	if (cDev == NULL || cDev->write8 == NULL)
+		return;
+	
+	cDev->write8(cDev->base.defInf.dataPtr, 1, fData[0x01] );
+	cDev->write8(cDev->base.defInf.dataPtr, 0, fData[0x01] );
 	return;
 }
 
