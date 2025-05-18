@@ -141,7 +141,7 @@ static void k005289_update(void* param, UINT32 samples, DEV_SMPL** outputs) {
                 info->voice[ch].counter = info->voice[ch].freq;
             }
             
-            UINT16 prom_addr = (ch * 0x100) | 
+            UINT16 prom_addr = (ch << 8) | 
                             (info->voice[ch].waveform << 5) | 
                             info->voice[ch].addr;
             INT8 sample = info->prom[prom_addr] - 8; // Convert to signed
