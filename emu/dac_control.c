@@ -442,9 +442,9 @@ void daccontrol_setup_chip(void* info, DEV_INFO* devInf, UINT8 ChType, UINT16 Co
 		chip->CmdSize = 0x02;
 		chip->CmdSize = 0x01; // eito hack
 		break;
-    case DEVID_K005289:
-        chip->CmdSize = 0x01;
-        break;
+	case DEVID_K005289:
+		chip->CmdSize = 0x01;
+		break;
 	default:
 		chip->CmdSize = 0x01;
 		break;

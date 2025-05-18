@@ -155,27 +155,23 @@ static void k005289_update(void* param, UINT32 samples, DEV_SMPL** outputs) {
 // Write handlers
 static void k005289_write(void* chip, UINT8 address, UINT16 data) {
     k005289_state* info = (k005289_state*)chip;
-    int ch = (address >= 0x02) ? 1 : 0; // Channel select
+    int ch = address & 1; // Channel select
     
     switch (address) {
         // Control A (Channel 1)
         case 0x00:
-            info->voice[0].volume = data & 0x0F;
-            info->voice[0].waveform = (data >> 5) & 0x07;
-            break;
-            
         // Control B (Channel 2)
         case 0x01:
-            info->voice[1].volume = data & 0x0F;
-            info->voice[1].waveform = (data >> 5) & 0x07;
+            info->voice[ch].volume = data & 0x0F;
+            info->voice[ch].waveform = (data >> 5) & 0x07;
             break;
-            
+
         // LD1/LD2 - Latch pitch
         case 0x02:
         case 0x03:
             info->voice[ch].pitch = 0xFFF - (data & 0x0FFF);
             break;
-            
+
         // TG1/TG2 - Trigger frequency update
         case 0x04:
         case 0x05:

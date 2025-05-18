@@ -253,7 +253,7 @@ protected:
 	void Cmd_MSM5205_Reg(void);				// command B3/B5..BB/BE/BF - Offset (8-bit), Data (8-bit)
 	void Cmd_Ofs8_Data8(void);				// command B3/B5..BB/BE/BF - Offset (8-bit), Data (8-bit)
 	void Cmd_Ofs16_Data8(void);				// command C5..C8/D3/D4/D6/E5 - Offset (16-bit), Data (8-bit)
-	void Cmd_Ofs8_Data16(void);				// unused - Offset (8-bit), Data (16-bit)
+	void Cmd_Ofs8_Data16(void);				// command D7 - Offset (8-bit), Data (16-bit)
 	void Cmd_Ofs16_Data16(void);			// command E1 - Offset (16-bit), Data (16-bit)
 	void Cmd_Port_Ofs8_Data8(void);			// command D5 - Port, Offset (8-bit), Data (8-bit)
 	void Cmd_DReg8_Data8(void);				// command A0 - Register (with dual-chip bit), Data (8-bit)
