@@ -136,7 +136,7 @@ static void k005289_update(void* param, UINT32 samples, DEV_SMPL** outputs) {
         for (int ch = 0; ch < 2; ch++) {
             if (info->mute_mask & (1 << ch)) continue;
             
-            if (--info->voice[ch].counter > 0) {
+            if (--info->voice[ch].counter < 0) {
                 info->voice[ch].addr = (info->voice[ch].addr + 1) & 0x1F;
                 info->voice[ch].counter = info->voice[ch].freq;
             }
