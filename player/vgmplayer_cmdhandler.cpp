@@ -235,7 +235,7 @@
 	{0x1C, 0x04, &VGMPlayer::Cmd_Ofs16_Data8},          // D4 C140 register write
 	{0x24, 0x04, &VGMPlayer::Cmd_Port_Ofs8_Data8},      // D5 ES5503 register write
 	{0x25, 0x04, &VGMPlayer::Cmd_Ofs8_Data16},          // D6 ES5506 register write (16-bit data)
-	{0x2C, 0x04, &VGMPlayer::Cmd_K005289_Reg},          // D7 K005289 register write
+	{0x2C, 0x03, &VGMPlayer::Cmd_K005289_Reg},          // D7 K005289 register write
 	{0xFF, 0x04, &VGMPlayer::Cmd_unknown},              // D8
 	{0xFF, 0x04, &VGMPlayer::Cmd_unknown},              // D9
 	{0xFF, 0x04, &VGMPlayer::Cmd_unknown},              // DA
