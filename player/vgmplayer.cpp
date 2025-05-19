@@ -1191,7 +1191,6 @@ void VGMPlayer::GenerateDeviceConfig(void)
 			DEV_GEN_CFG devCfg;
 			SONG_DEV_CFG sdCfg;
 			DEV_ID chipType = _DEV_LIST[vgmChip];
-			if( chipType == 0x29 ) chipType = 0x2b; // eito hack
 			UINT32 hdrClock = GetChipClock(vgmChip, chipID);
 			
 			memset(&devCfg, 0x00, sizeof(DEV_GEN_CFG));
@@ -1317,7 +1316,6 @@ void VGMPlayer::GenerateDeviceConfig(void)
 			
 			sdCfg.deviceID = (size_t)-1;
 			sdCfg.vgmChipType = vgmChip;
-			if( sdCfg.vgmChipType == 0x29 ) sdCfg.vgmChipType = 0x2b; // eito hack
 			sdCfg.type = chipType;
 			sdCfg.instance = chipID;
 			_devCfgs.push_back(sdCfg);
@@ -1376,12 +1374,6 @@ void VGMPlayer::InitDevices(void)
 		chipDev.base.defInf.dataPtr = NULL;
 		chipDev.base.linkDev = NULL;
 
-		// eito hack
-		if( sdCfg.type == 0x29 )
-		{
-			chipType = 0x2b;
-			chipDev.chipType = 0x2b;
-		}
 		
 		devOpts = (chipDev.optID != (size_t)-1) ? &_devOpts[chipDev.optID] : NULL;
 		devCfg->emuCore = (devOpts != NULL) ? devOpts->emuCore[0] : 0x00;
