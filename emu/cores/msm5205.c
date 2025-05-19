@@ -98,6 +98,7 @@ typedef struct _msm5205_state {
     UINT32  master_clock;
     INT32   signal;
     INT32   step;
+    UINT8   vclk;
     
     UINT8   data_buf[8];
     UINT8   data_in_last;
@@ -243,6 +244,7 @@ static UINT8 device_start_msm5205(const DEV_GEN_CFG *cfg, DEV_INFO *retDevInf) {
     info->master_clock = cfg->clock;
     info->signal = -2;
     info->step = 0;
+    info->vclk = 0;
     info->Muted = 0;
     info->data_empty = 0xFF;
     info->data_in_last = PIN_S2;
@@ -263,6 +265,7 @@ static void device_reset_msm5205(void *chip) {
     
     info->signal = -2;
     info->step = 0;
+    info->vclk = 0;
     memset(info->data_buf, 0, sizeof(info->data_buf));
     info->data_buf_pos = 0;
     info->data_empty = 0xFF;
@@ -287,12 +290,12 @@ static void msm5205_update(void *param, UINT32 samples, DEV_SMPL **outputs) {
             UINT8 read_pos = info->data_buf_pos & 0x0F;
             UINT8 write_pos = (info->data_buf_pos >> 4) & 0x07;
             
-            if (read_pos != write_pos) {
+            if ((read_pos != write_pos) && (get_prescaler(info) != 1)) { // if not slave mode
                 UINT8 data = info->data_buf[read_pos];
                 sample = clock_adpcm(info, data);
                 info->data_buf_pos = (write_pos << 4) | ((read_pos + 1) & 0x07);
             } else {
-                sample = (info->signal * 15) / 16;
+                sample = (INT16)(info->signal << 4);
             }
         }
         
@@ -304,29 +307,55 @@ static void msm5205_update(void *param, UINT32 samples, DEV_SMPL **outputs) {
 static void msm5205_write(void *chip, UINT8 offset, UINT8 data) {
     msm5205_state *info = (msm5205_state*)chip;
     
-    if (offset == 0) {
-        UINT8 write_pos = (info->data_buf_pos >> 4) & 0x07;
-        UINT8 read_pos = info->data_buf_pos & 0x07;
-        
-        if (((write_pos + 1) & 0x07) == read_pos) {
-            emu_logf(&info->logger, DEVLOG_DEBUG, "MSM5205 FIFO overflow\n");
-            return;
-        }
-        
-        info->data_buf[write_pos] = data;
-        info->data_buf_pos = ((write_pos + 1) << 4) | read_pos;
-    } else {
-        UINT8 old = info->data_in_last;
-        info->data_in_last = data;
-        
-        if ((old ^ data) & (PIN_S1|PIN_S2|PIN_RESET)) {
-            if (info->SmpRateFunc)
-                info->SmpRateFunc(info->SmpRateData, msm5205_get_rate(info));
+    switch (offset)
+    {
+        case 0: {
+            UINT8 write_pos = (info->data_buf_pos >> 4) & 0x07;
+            UINT8 read_pos = info->data_buf_pos & 0x07;
             
-            if ((old ^ data) & PIN_RESET) {
-                info->signal = 0;
-                info->step = 0;
+            if (((write_pos + 1) & 0x07) == read_pos) {
+                emu_logf(&info->logger, DEVLOG_DEBUG, "MSM5205 FIFO overflow\n");
+                return;
             }
+            
+            info->data_buf[write_pos] = data;
+            info->data_buf_pos = ((write_pos + 1) << 4) | read_pos;
+            break;
+        }
+        case 1: {
+            UINT8 old = info->data_in_last;
+            info->data_in_last = data;
+            
+            if ((old ^ data) & (PIN_S1|PIN_S2|PIN_RESET)) {
+                if (info->SmpRateFunc)
+                    info->SmpRateFunc(info->SmpRateData, msm5205_get_rate(info));
+                
+                if ((old ^ data) & PIN_RESET) {
+                    info->signal = 0;
+                    info->step = 0;
+                }
+            }
+            break;
+        }
+        case 2: { // vclk
+            UINT8 old = info->vclk;
+            info->vclk = data;
+
+            if (get_prescaler(info) == 1) { // if slave mode
+                if (((old ^ data) & 1) && info->vclk) {
+                    if (!info->Muted && !(info->data_in_last & PIN_RESET)) {
+                        UINT8 read_pos = info->data_buf_pos & 0x0F;
+                        UINT8 write_pos = (info->data_buf_pos >> 4) & 0x07;
+                        
+                        if (read_pos != write_pos) {
+                            UINT8 data = info->data_buf[read_pos];
+                            clock_adpcm(info, data);
+                            info->data_buf_pos = (write_pos << 4) | ((read_pos + 1) & 0x07);
+                        }
+                    }
+                }
+            }
+            break;
         }
     }
 }
