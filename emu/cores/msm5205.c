@@ -56,7 +56,7 @@
 
 /**********************************************************************************************
     OKI MSM5205 ADPCM (Full Working Implementation for libvgm)
-// copyright-holders:eito, ValleyBell, Mao
+// copyright-holders:eito, ValleyBell, Mao, cam900
 ***********************************************************************************************/
 
 #include <stdlib.h>
@@ -128,7 +128,7 @@ static DEVDEF_RWFUNC devFunc[] = {
 };
 
 static DEV_DEF devDef = {
-    "MSM5205", "Mao/eito", FCC_EITO,
+    "MSM5205", "eito", FCC_EITO,
     device_start_msm5205,
     device_stop_msm5205,
     device_reset_msm5205,
@@ -196,9 +196,15 @@ static void compute_tables(void) {
 }
 
 INLINE UINT32 get_prescaler(msm5205_state *info) {
-    return (info->data_in_last & PIN_S1) ? 
-        ((info->data_in_last & PIN_S2) ? 0 : 64) : 
-        ((info->data_in_last & PIN_S2) ? 48 : 96);
+    if (info->is_msm6585) {
+        return (info->data_in_last & PIN_S1) ? 
+            ((info->data_in_last & PIN_S2) ? 20 : 80) : 
+            ((info->data_in_last & PIN_S2) ? 40 : 160);
+    } else {
+        return (info->data_in_last & PIN_S1) ? 
+            ((info->data_in_last & PIN_S2) ? 1/* Slave mode */ : 64) : 
+            ((info->data_in_last & PIN_S2) ? 48 : 96);
+    }
 }
 
 // ========== Core ADPCM Processing ==========
