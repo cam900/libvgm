@@ -178,8 +178,6 @@ typedef struct {
 		int ramp;       // 100 0000 = 0x40 maximum
 	} state;
 
-	UINT16 regs[0x20]; // channel registers
-
 	UINT8  Muted;
 } ics2115_voice;
 
@@ -224,8 +222,6 @@ struct _ics2115_state
 	UINT8 irq_enabled;
 	UINT8 irq_pending;
 	UINT8 irq_on;
-
-	UINT16 regs[0x40]; // global registers
 
 	/*
 	    Unknown variable, seems to be effected by 0x12. Further investigation
