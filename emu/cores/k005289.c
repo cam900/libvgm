@@ -166,7 +166,7 @@ static void k005289_update(void* param, UINT32 samples, DEV_SMPL** outputs) {
             mix += sample * info->voice[ch].volume;
         }
         
-        buffer[i] = mix * 256; // Scale to 16-bit
+        buffer[i] = mix * 16; // Scale to 16-bit
         buffer2[i] = buffer[i]; // Mono output
     }
 }
