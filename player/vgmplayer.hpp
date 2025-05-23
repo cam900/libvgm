@@ -250,7 +250,7 @@ protected:
 	void Cmd_Reg8_Data8(void);				// command 51/54/55/5A..5D - Register, Data (8-bit)
 	void Cmd_CPort_Reg8_Data8(void);		// command 52/53/56..59/5E/5F - Port (in command byte), Register, Data (8-bit)
 	void Cmd_Port_Reg8_Data8(void);			// command D0..D2 - Port, Register, Data (8-bit)
-	void Cmd_MSM5205_Reg(void);				// command B3/B5..BB/BE/BF - Offset (8-bit), Data (8-bit)
+	void Cmd_MSM5205_Reg(void);				// command 32 - MSM5205 register write (4-bit offset, 4-bit data)
 	void Cmd_Ofs8_Data8(void);				// command B3/B5..BB/BE/BF - Offset (8-bit), Data (8-bit)
 	void Cmd_Ofs16_Data8(void);				// command C5..C8/D3/D4/D6/E5 - Offset (16-bit), Data (8-bit)
 	void Cmd_Ofs8_Data16(void);				// unused - Offset (8-bit), Data (16-bit)
@@ -261,7 +261,7 @@ protected:
 	void Cmd_RF5C_Mem(void);				// command C1/C2 - RF5C68/164 memory write
 	void Cmd_RF5C_Reg(void);				// command B0/B1 - RF5C68/164 register write
 	void Cmd_PWM_Reg(void);					// command B2 - PWM register write (4-bit offset, 12-bit data)
-	void Cmd_K005289_Reg(void);				// command D7 - K005289 register write (4-bit offset, 12-bit data)
+	void Cmd_K005289_Reg(void);				// command 42 - K005289 register write (4-bit offset, 12-bit data)
 	void Cmd_QSound_Reg(void);				// command C4 - QSound register write (16-bit data, 8-bit offset)
 	static void WriteQSound_A(CHIP_DEVICE* cDev, UINT8 ofs, UINT16 data);	// write by calling write8
 	static void WriteQSound_B(CHIP_DEVICE* cDev, UINT8 ofs, UINT16 data);	// write by calling writeD16
@@ -283,8 +283,8 @@ protected:
 	enum
 	{
 		_HDR_BUF_SIZE = 0x100,
-		_OPT_DEV_COUNT = 0x2d,
-		_CHIP_COUNT = 0x2d,
+		_OPT_DEV_COUNT = 0x2e,
+		_CHIP_COUNT = 0x2e,
 		_PCM_BANK_COUNT = 0x40
 	};
 	
