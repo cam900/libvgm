@@ -18,7 +18,7 @@ typedef struct _k005289_state {
         UINT16 freq;
         UINT8 volume;
         UINT8 waveform;
-        UINT16 counter;
+        INT16 counter;
         UINT8 addr;
     } voice[2];
     
@@ -69,14 +69,11 @@ static UINT8 device_start_k005289(const DEV_GEN_CFG* cfg, DEV_INFO* retDevInf);
 static void device_stop_k005289(void* chip);
 static void device_reset_k005289(void* chip);
 static void k005289_set_mute_mask(void* chip, UINT32 mute_mask);
-static void k005289_write(void* chip, UINT8 address, UINT8 data);
+static void k005289_write(void* chip, UINT8 address, UINT16 data);
 
 // Add PROM write handler
-static void k005289_write_prom(void* chip, UINT8 offset, UINT16 data);
-
 static DEVDEF_RWFUNC devFunc[] = {
-    {RWF_REGISTER | RWF_WRITE, DEVRW_A8D8, 0, k005289_write},
-    {RWF_MEMORY | RWF_WRITE, DEVRW_A16D8, 0, k005289_write_prom}, // PROM writes
+    {RWF_REGISTER | RWF_WRITE, DEVRW_A8D16, 0, k005289_write},
     {RWF_CHN_MUTE | RWF_WRITE, DEVRW_ALL, 0, k005289_set_mute_mask},
     {0x00, 0x00, 0, NULL}
 };
@@ -145,18 +142,11 @@ static void device_reset_k005289(void* chip) {
     info->mute_mask = 0x00;
 }
 
-// Sound generation
-// PROM data write handler
-static void k005289_write_prom(void* chip, UINT8 offset, UINT16 data) {
-    k005289_state* info = (k005289_state*)chip;
-    if (offset < PROM_SIZE)
-        info->prom[offset] = data & 0x0F; // Store only 4 bits
-}
-
 // Modified update function using internal PROM
 static void k005289_update(void* param, UINT32 samples, DEV_SMPL** outputs) {
     k005289_state* info = (k005289_state*)param;
     DEV_SMPL* buffer = outputs[0];
+	DEV_SMPL *buffer2 = outputs[1];
     
     for (UINT32 i = 0; i < samples; i++) {
         INT32 mix = 0;
@@ -164,7 +154,7 @@ static void k005289_update(void* param, UINT32 samples, DEV_SMPL** outputs) {
         for (int ch = 0; ch < 2; ch++) {
             if (info->mute_mask & (1 << ch)) continue;
             
-            if (--info->voice[ch].counter == 0xFB88) {
+            if (--info->voice[ch].counter < 0) {
                 info->voice[ch].addr = (info->voice[ch].addr + 1) & 0x1F;
                 info->voice[ch].counter = info->voice[ch].freq;
             }
@@ -177,11 +167,12 @@ static void k005289_update(void* param, UINT32 samples, DEV_SMPL** outputs) {
         }
         
         buffer[i] = mix * 256; // Scale to 16-bit
+        buffer2[i] = buffer[i]; // Mono output
     }
 }
 
 // Write handlers
-static void k005289_write(void* chip, UINT8 address, UINT8 data) {
+static void k005289_write(void* chip, UINT8 address, UINT16 data) {
     k005289_state* info = (k005289_state*)chip;
     int ch = address & 1; // Channel select
 	
