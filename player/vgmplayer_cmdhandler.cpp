@@ -70,7 +70,7 @@
 	{0xFF, 0x00, &VGMPlayer::Cmd_invalid},              // 2F
 	{0x00, 0x02, &VGMPlayer::Cmd_SN76489},              // 30 SN76489 register write (2nd chip)
 	{0xFF, 0x02, &VGMPlayer::Cmd_AY_Stereo},            // 31 AY8910 stereo mask [chip type depends on data]
-	{0x2B, 0x02, &VGMPlayer::Cmd_MSM5205_Reg},          // 32 MSM5205
+	{0x2B, 0x02, &VGMPlayer::Cmd_MSM5205_Reg},          // 32 MSM5205 register write
 	{0xFF, 0x02, &VGMPlayer::Cmd_unknown},              // 33
 	{0xFF, 0x02, &VGMPlayer::Cmd_unknown},              // 34
 	{0xFF, 0x02, &VGMPlayer::Cmd_unknown},              // 35
@@ -86,10 +86,10 @@
 	{0x00, 0x02, &VGMPlayer::Cmd_GGStereo},             // 3F GameGear stereo mask (2nd chip)
 	{0x29, 0x03, &VGMPlayer::Cmd_Ofs8_Data8},           // 40 Mikey register write
 	{0x2A, 0x03, &VGMPlayer::Cmd_K007232_Reg},          // 41 K007232 register write
-	{0x2C, 0x03, &VGMPlayer::Cmd_Ofs16_Data8},   	    // 42 K005289 register write
+	{0x2C, 0x03, &VGMPlayer::Cmd_K005289_Reg},          // 42 K005289 register write
 	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 43
-	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 44
-	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 45
+	{0x2D, 0x03, &VGMPlayer::Cmd_Ofs8_Data8},           // 44 ICS2115 register write
+	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 46
 	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 46
 	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 47
 	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 48
@@ -235,7 +235,7 @@
 	{0x1C, 0x04, &VGMPlayer::Cmd_Ofs16_Data8},          // D4 C140 register write
 	{0x24, 0x04, &VGMPlayer::Cmd_Port_Ofs8_Data8},      // D5 ES5503 register write
 	{0x25, 0x04, &VGMPlayer::Cmd_Ofs8_Data16},          // D6 ES5506 register write (16-bit data)
-	{0xFF, 0x04, &VGMPlayer::Cmd_unknown},              // D7
+	{0x2C, 0x03, &VGMPlayer::Cmd_K005289_Reg},          // D7 K005289 register write
 	{0xFF, 0x04, &VGMPlayer::Cmd_unknown},              // D8
 	{0xFF, 0x04, &VGMPlayer::Cmd_unknown},              // D9
 	{0xFF, 0x04, &VGMPlayer::Cmd_unknown},              // DA
@@ -370,8 +370,8 @@
 	{0x27, 0},	// 92 C352
 	{0x28, 0},	// 93 GA20
 	{0x2A, 0},	// 94 K007232
-	{0x2C, 0},	// 95 K005289
-	{0xFF, 0},	// 96
+	{0xFF, 0},	// 95
+	{0x2D, 0},	// 96 ICS2115
 	{0xFF, 0},	// 97
 	{0xFF, 0},	// 98
 	{0xFF, 0},	// 99
@@ -421,7 +421,7 @@
 	0x05,	// C0 RF5C68
 	0x10,	// C1 RF5C164
 	0x14,	// C2 NES APU
-	0xFF,	// C3
+	0x2C,	// C3 K005289
 	0xFF,	// C4
 	0xFF,	// C5
 	0xFF,	// C6
@@ -1077,9 +1077,8 @@ void VGMPlayer::Cmd_MSM5205_Reg(void)
 	CHIP_DEVICE* cDev = GetDevicePtr(chipType, chipID);
 	if (cDev == NULL || cDev->write8 == NULL)
 		return;
-	
-	cDev->write8(cDev->base.defInf.dataPtr, 1, fData[0x01] );
-	cDev->write8(cDev->base.defInf.dataPtr, 0, fData[0x01] );
+
+	cDev->write8(cDev->base.defInf.dataPtr, (fData[0x01] >> 4) & 0x7, fData[0x01] & 0xF);
 	return;
 }
 
@@ -1205,6 +1204,20 @@ void VGMPlayer::Cmd_PWM_Reg(void)
 		return;
 	
 	UINT8 ofs = (fData[0x01] >> 4) & 0x0F;
+	UINT16 value = ReadBE16(&fData[0x01]) & 0x0FFF;
+	cDev->writeD16(cDev->base.defInf.dataPtr, ofs, value);
+	return;
+}
+
+void VGMPlayer::Cmd_K005289_Reg(void)
+{
+	UINT8 chipType = _CMD_INFO[fData[0x00]].chipType;
+	UINT8 chipID = (fData[0x01] & 0x80) >> 7;
+	CHIP_DEVICE* cDev = GetDevicePtr(chipType, chipID);
+	if (cDev == NULL || cDev->writeD16 == NULL)
+		return;
+	
+	UINT8 ofs = (fData[0x01] >> 4) & 0x07;
 	UINT16 value = ReadBE16(&fData[0x01]) & 0x0FFF;
 	cDev->writeD16(cDev->base.defInf.dataPtr, ofs, value);
 	return;
