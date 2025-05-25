@@ -3,7 +3,10 @@
 
 #include "../EmuStructs.h"
 
-// Configuration flags (bit 31 for MSM6585)
+typedef struct {
+	UINT32 clock;         // chip clock in Hz
+	double capacitors[8]; // external capacitor values for each channel (in Farads)
+} MSM5232_CFG;
 
 extern const DEV_DECL sndDev_MSM5232;
 
