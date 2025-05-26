@@ -330,10 +330,13 @@ static void TG_group_advance(MSM5232_STATE* chip, int groupidx, MSM5232_GROUP_OU
 			if (chip->noise_clocks & 1) out2  += (1<<STEP_SH);
 		}
 		// Signed output
-		out->o16 += ((out16 - (1 << (STEP_SH-1))) * v->egvol) >> STEP_SH;
-		out->o8  += ((out8  - (1 << (STEP_SH-1))) * v->egvol) >> STEP_SH;
-		out->o4  += ((out4  - (1 << (STEP_SH-1))) * v->egvol) >> STEP_SH;
-		out->o2  += ((out2  - (1 << (STEP_SH-1))) * v->egvol) >> STEP_SH;
+		if (!v->mute)
+		{
+			out->o16 += ((out16 - (1 << (STEP_SH-1))) * v->egvol) >> STEP_SH;
+			out->o8  += ((out8  - (1 << (STEP_SH-1))) * v->egvol) >> STEP_SH;
+			out->o4  += ((out4  - (1 << (STEP_SH-1))) * v->egvol) >> STEP_SH;
+			out->o2  += ((out2  - (1 << (STEP_SH-1))) * v->egvol) >> STEP_SH;
+		}
 	}
 	// Mask outputs
 	out->o16 &= chip->EN_out16[groupidx];
