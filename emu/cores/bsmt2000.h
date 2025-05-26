@@ -5,5 +5,4 @@
 
 extern const DEV_DECL sndDev_BSMT2000;
 
-
 #endif  // __BSMT2000_H__
