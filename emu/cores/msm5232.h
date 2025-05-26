@@ -4,7 +4,7 @@
 #include "../EmuStructs.h"
 
 typedef struct {
-	UINT32 clock;         // chip clock in Hz
+	DEV_GEN_CFG _genCfg;
 	double capacitors[8]; // external capacitor values for each channel (in Farads)
 } MSM5232_CFG;
 

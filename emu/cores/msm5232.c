@@ -161,7 +161,7 @@ static UINT8 device_start(const DEV_GEN_CFG* cfg, DEV_INFO* retDevInf)
     chip = (MSM5232_STATE*)calloc(1, sizeof(MSM5232_STATE));
     if (!chip) return 0xFF;
 
-    chip->clock = msm_cfg->clock;
+    chip->clock = msm_cfg->_genCfg.clock;
     memcpy(chip->capacitors, msm_cfg->capacitors, sizeof(double)*8);
     chip->sample_rate = chip->clock / CLOCK_RATE_DIVIDER;
     SRATE_CUSTOM_HIGHEST(cfg->srMode, chip->sample_rate, cfg->smplRate);
@@ -379,38 +379,42 @@ static void device_update(void* info, UINT32 samples, DEV_SMPL** outputs)
 // --- Register Write Handler ---
 static void write_reg(void* info, UINT8 reg, UINT8 value)
 {
-	MSM5232_STATE* chip = (MSM5232_STATE*)info;
-	if (reg < 0x08) {
-		int ch = reg & 7;
-		MSM5232_VOICE* v = &chip->voi[ch];
-		v->GF = (value & 0x80) >> 7;
-		if (value & 0x80) {
-			if (value >= 0xd8) {
-				v->mode = 1; // noise
-				v->eg_sect = 0; // key on
-			} else {
-				if ((value & 0x7f) >= 88)
-					return; // Clamp to valid ROM range!
-				if (v->pitch != (value & 0x7f)) {
-					uint16_t pg = MSM5232_ROM[value & 0x7f];
-					v->pitch = value & 0x7f;
-					v->TG_count_period = ((pg & 0x1ff) * chip->UpdateStep) / 2;
-					int n = (pg >> 9) & 7;
-					v->TG_out16 = 1 << n;
-					n = (n > 0) ? n-1 : 0; v->TG_out8 = 1 << n;
-					n = (n > 0) ? n-1 : 0; v->TG_out4 = 1 << n;
-					n = (n > 0) ? n-1 : 0; v->TG_out2 = 1 << n;
-				}
-				v->mode = 0;
-				v->eg_sect = 0;
-			}
-		} else {
-			if (!v->eg_arm)
-				v->eg_sect = 2; // release
-			else
-				v->eg_sect = 1; // decay
-		}
-	} else {
+    MSM5232_STATE* chip = (MSM5232_STATE*)info;
+    if (reg < 0x08) {
+        int ch = reg & 7;
+        MSM5232_VOICE* v = &chip->voi[ch];
+        v->GF = (value & 0x80) >> 7;
+        if (value & 0x80) {
+            if (value >= 0xd8) {
+                v->mode = 1; // noise
+                v->eg_sect = 0; // key on
+            } else {
+                int pitch_index = value & 0x7f;
+                if (pitch_index >= 88)
+                    pitch_index = 0x57; // Clamp to valid ROM entry
+
+                uint16_t pg = MSM5232_ROM[pitch_index];
+                v->pitch = pitch_index;
+                v->TG_count_period = ((pg & 0x1ff) * chip->UpdateStep) / 2;
+                if (!v->TG_count_period)
+                    v->TG_count_period = 1;
+                v->TG_count = v->TG_count_period;
+                v->TG_cnt = 0;
+                int n = (pg >> 9) & 7;
+                v->TG_out16 = 1 << n;
+                n = (n > 0) ? n-1 : 0; v->TG_out8 = 1 << n;
+                n = (n > 0) ? n-1 : 0; v->TG_out4 = 1 << n;
+                n = (n > 0) ? n-1 : 0; v->TG_out2 = 1 << n;
+                v->mode = 0;
+                v->eg_sect = 0;
+            }
+        } else {
+            if (!v->eg_arm)
+                v->eg_sect = 2; // release
+            else
+                v->eg_sect = 1; // decay
+        }
+    } else {
 		switch (reg) {
 		case 0x08: // group1 attack
 			for (int i = 0; i < 4; i++)
