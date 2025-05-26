@@ -88,8 +88,8 @@
 	{0x2A, 0x03, &VGMPlayer::Cmd_K007232_Reg},          // 41 K007232 register write
 	{0x2B, 0x03, &VGMPlayer::Cmd_MSM5205_Reg},          // 42 MSM5205 register write
 	{0x2C, 0x03, &VGMPlayer::Cmd_K005289_Reg},          // 43 K005289 register write
-	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 44
-	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 45
+	{0x2D, 0x03, &VGMPlayer::Cmd_Ofs8_Data8},           // 44 ICS2115 register write
+	{0x2E, 0x03, &VGMPlayer::Cmd_Reg8_Data8},           // 45 MSM5232 register write
 	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 46
 	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 47
 	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 48
@@ -371,7 +371,7 @@
 	{0x28, 0},	// 93 GA20
 	{0x2A, 0},	// 94 K007232
 	{0xFF, 0},	// 95
-	{0xFF, 0},	// 96
+	{0x2D, 0},	// 96 ICS2115
 	{0xFF, 0},	// 97
 	{0xFF, 0},	// 98
 	{0xFF, 0},	// 99
