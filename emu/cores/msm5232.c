@@ -3,6 +3,8 @@
 /*
     OKI MSM5232RS
     8 channel tone generator
+
+	Modified for libvgm by Mao(RN22), cam900
 */
 
 #include <stdlib.h>
