@@ -1334,23 +1334,23 @@ void VGMPlayer::GenerateDeviceConfig(void)
 					devCfg.clock *= 512;	// (for backwards compatibility with old VGM logs from 2012-14)
 				SaveDeviceConfig(sdCfg.cfgData, &devCfg, sizeof(DEV_GEN_CFG));
 				break;
-            case DEVID_MSM5232:
-                {
-                    MSM5232_CFG okiCfg;
+			case DEVID_MSM5232:
+			{
+				MSM5232_CFG okiCfg;
 
-                    okiCfg._genCfg = devCfg;
-					// default value for now
-                    okiCfg.capacitors[0] = (double)(1e-6);
-                    okiCfg.capacitors[1] = (double)(1e-6);
-					okiCfg.capacitors[2] = (double)(1e-6);
-					okiCfg.capacitors[3] = (double)(1e-6);
-					okiCfg.capacitors[4] = (double)(1e-6);
-					okiCfg.capacitors[5] = (double)(1e-6);
-					okiCfg.capacitors[6] = (double)(1e-6);
-                    okiCfg.capacitors[7] = (double)(1e-6);
-                    SaveDeviceConfig(sdCfg.cfgData, &okiCfg, sizeof(MSM5232_CFG));
-                }
-                break;
+				okiCfg._genCfg = devCfg;
+				// default value for now
+				okiCfg.capacitors[0] = (double)(1e-6);
+				okiCfg.capacitors[1] = (double)(1e-6);
+				okiCfg.capacitors[2] = (double)(1e-6);
+				okiCfg.capacitors[3] = (double)(1e-6);
+				okiCfg.capacitors[4] = (double)(1e-6);
+				okiCfg.capacitors[5] = (double)(1e-6);
+				okiCfg.capacitors[6] = (double)(1e-6);
+				okiCfg.capacitors[7] = (double)(1e-6);
+				SaveDeviceConfig(sdCfg.cfgData, &okiCfg, sizeof(MSM5232_CFG));
+				break;
+			}
 			default:
 				SaveDeviceConfig(sdCfg.cfgData, &devCfg, sizeof(DEV_GEN_CFG));
 				break;
