@@ -59,6 +59,7 @@ typedef struct
 {
     UINT16 reg[BSMT2000_REG_TOTAL]; // 9 registers per voice
     UINT32 position;                // 16.16 fixed-point sample position
+    UINT32 fraction;                // 16.16 fixed-point sample fraction
     UINT32 adjusted_rate;           // 16.16 fixed-point rate
     UINT32 loop_start_position;     // 16.16
     UINT32 loop_stop_position;      // 16.16
@@ -475,8 +476,8 @@ static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
         if (voice->reg[BSMT2000_REG_BANK] < chip->total_banks)
         {
             INT8 *base = chip->sample_rom + voice->reg[BSMT2000_REG_BANK] * BSMT2000_ROM_BANKSIZE;
-            UINT32 rate = 0x02aa << 4; // fixed rate for compressed channel
             UINT32 pos = voice->position;
+            UINT32 frac = voice->fraction;
             INT32 lvol = voice->reg[BSMT2000_REG_LEFTVOL];
             INT32 rvol = voice->reg[BSMT2000_REG_RIGHTVOL];
             int remaining = length;
@@ -487,13 +488,18 @@ static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
                 left[length-remaining-1]  += (chip->adpcm_current * lvol) >> 8;
                 right[length-remaining-1] += (chip->adpcm_current * rvol) >> 8;
 
-                pos += rate;
-                if ((oldpos ^ pos) & 0x8000)
+                frac++;
+                if (frac == 6)
                 {
-                    static const UINT8 delta_tab[] = { 58,58,58,58,77,102,128,154 };
-                    int nibble = base[oldpos >> 16] >> ((~oldpos >> 13) & 4);
-                    int value = (INT8)(nibble << 4) >> 4;
-                    int temp;
+                    pos++;
+                    frac = 0;
+                }
+                if (frac == 1 || frac == 4)
+                {
+                    static const INT32 delta_tab[] = { 58,58,58,58,77,102,128,154 };
+                    INT32 nibble = base[oldpos >> 16] >> ((frac == 1) ? 4 : 0);
+                    INT32 value = (INT8)(nibble << 4) >> 4;
+                    INT32 temp;
 
                     temp = chip->adpcm_delta_n * value;
                     if (value > 0)
@@ -502,9 +508,9 @@ static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
                         temp -= chip->adpcm_delta_n >> 1;
 
                     chip->adpcm_current += temp;
-                    if (chip->adpcm_current >= 32767)
+                    if (chip->adpcm_current > 32767)
                         chip->adpcm_current = 32767;
-                    else if (chip->adpcm_current <= -32768)
+                    else if (chip->adpcm_current < -32768)
                         chip->adpcm_current = -32768;
 
                     chip->adpcm_delta_n = (chip->adpcm_delta_n * delta_tab[abs(value)]) >> 6;
@@ -515,6 +521,7 @@ static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
                 }
             }
             voice->position = pos;
+            voice->fraction = frac;
         }
     }
     // Output clamp and write
@@ -524,7 +531,7 @@ static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
         INT32 r = right[samp] >> 9;
         l = (l > 32767) ? 32767 : (l < -32768) ? -32768 : l;
         r = (r > 32767) ? 32767 : (r < -32768) ? -32768 : r;
-        outputs[0][samp] = (INT16)l;
-        outputs[1][samp] = (INT16)r;
+        outputs[0][samp] = l;
+        outputs[1][samp] = r;
     }
 }
