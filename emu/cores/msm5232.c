@@ -1,3 +1,10 @@
+// license:GPL-2.0+
+// copyright-holders:Jarek Burczynski, Hiromitsu Shioya
+/*
+    OKI MSM5232RS
+    8 channel tone generator
+*/
+
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
