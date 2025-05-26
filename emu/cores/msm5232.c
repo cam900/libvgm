@@ -182,8 +182,8 @@ static UINT8 device_start_msm5232(const MSM5232_CFG* cfg, DEV_INFO* retDevInf)
     for (int i = 0; i < MSM5232_NUM_CHANNELS; i++)
     {
         init_voice(chip, i);
-        chip->voi[i].mute = 0;
     }
+	msm5232_set_mute_mask(chip, ~0);
 
     chip->noise_rng = 1;
     chip->noise_cnt = 0;
@@ -221,6 +221,8 @@ static void EG_voices_advance(MSM5232_STATE* chip)
 {
 	for (int i = 0; i < MSM5232_NUM_CHANNELS; i++) {
 		MSM5232_VOICE* v = &chip->voi[i];
+		if (v->mute)
+			continue;
 		switch (v->eg_sect) {
 		case 0: // attack
 			if (v->eg < VMAX) {
@@ -290,6 +292,8 @@ static void TG_group_advance(MSM5232_STATE* chip, int groupidx, MSM5232_GROUP_OU
 	for (int i = 0; i < 4; i++, v++) {
 		int out2 = 0, out4 = 0, out8 = 0, out16 = 0;
 		// GUARD: skip if TG_count_period is zero (not initialized yet)
+		if (v->mute)
+			continue;
 		if (v->TG_count_period == 0)
 			continue;
 		if (v->mode == 0) { // tone
