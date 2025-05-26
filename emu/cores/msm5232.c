@@ -180,10 +180,10 @@ static UINT8 device_start_msm5232(const MSM5232_CFG* cfg, DEV_INFO* retDevInf)
 
     init_tables(chip);
     for (int i = 0; i < MSM5232_NUM_CHANNELS; i++)
-	{
+    {
         init_voice(chip, i);
-		chip->voi[i].mute = 0;
-	}
+        chip->voi[i].mute = 0;
+    }
 
     chip->noise_rng = 1;
     chip->noise_cnt = 0;
