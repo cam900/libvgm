@@ -259,7 +259,9 @@ INLINE void daccontrol_SendCommand(dac_control* chip)
 				chip->Write.A8D8(chip->chipData, Command >> 4, prevChn);
 		}
 		break;
-	case DEVID_QSOUND:	// 8-bit Register, 16-bit Data
+	// 8-bit Register, 16-bit Data
+	case DEVID_QSOUND:
+	case DEVID_BSMT2000:
 		if (chip->Write.A8D8 == NULL)
 			return;
 		Command = (chip->DstCommand & 0x00FF) >> 0;
@@ -436,6 +438,7 @@ void daccontrol_setup_chip(void* info, DEV_INFO* devInf, UINT8 ChType, UINT16 Co
 		break;
 	case DEVID_32X_PWM:
 	case DEVID_QSOUND:
+	case DEVID_BSMT2000:
 		chip->CmdSize = 0x02;
 		break;
 	case DEVID_MSM5205:
