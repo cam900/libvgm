@@ -54,6 +54,7 @@
 #define SNDDEV_MSM5205
 #define SNDDEV_K005289
 #define SNDDEV_ICS2115
+#define SNDDEV_MSM5232
 #endif
 
 #ifdef SNDDEV_SN76496
@@ -181,6 +182,9 @@
 #endif
 #ifdef SNDDEV_ICS2115
 #include "cores/ics2115.h"
+#endif
+#ifdef SNDDEV_MSM5232
+#include "cores/msm5232.h"
 #endif
 
 
@@ -322,6 +326,9 @@ const DEV_DECL* sndEmu_Devices[] = {
 #endif
 #ifdef SNDDEV_ICS2115
 	&sndDev_ICS2115,
+#endif
+#ifdef SNDDEV_MSM5232
+	&sndDev_MSM5232,
 #endif
 	NULL	// list end
 };
