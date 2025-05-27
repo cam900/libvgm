@@ -500,7 +500,7 @@ static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
         INT32 r = right[samp] >> 9;
         l = (l > 32767) ? 32767 : (l < -32768) ? -32768 : l;
         r = (r > 32767) ? 32767 : (r < -32768) ? -32768 : r;
-        outputs[0][samp] = (INT16)l;
-        outputs[1][samp] = (INT16)r;
+        outputs[0][samp] = l;
+        outputs[1][samp] = r;
     }
 }
