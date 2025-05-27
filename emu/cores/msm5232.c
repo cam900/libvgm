@@ -6,7 +6,7 @@
 
 	Modified for libvgm by Mao(RN22), cam900(MATRIX)
 	It's basically MAME code with improvements.
-	TA7630P emulation code by Angelo Salese, adapted by cam900(MATRIX)
+	TA7630P emulation code (BSD-3-Clause) by Angelo Salese, adapted by cam900(MATRIX)
 */
 
 #include <stdlib.h>
