@@ -1,11 +1,12 @@
 // license:GPL-2.0+
-// copyright-holders:Jarek Burczynski, Hiromitsu Shioya
+// copyright-holders:Jarek Burczynski, Hiromitsu Shioya, Angelo Salese
 /*
     OKI MSM5232
     8 channel tone generator
 
 	Modified for libvgm by Mao(RN22), cam900(MATRIX)
 	It's basically MAME code with improvements.
+	TA7630P emulation code by Angelo Salese, adapted by cam900(MATRIX)
 */
 
 #include <stdlib.h>
@@ -191,7 +192,7 @@ static UINT8 device_start_msm5232(const MSM5232_CFG* cfg, DEV_INFO* retDevInf)
     SRATE_CUSTOM_HIGHEST(cfg->_genCfg.srMode, chip->sample_rate, cfg->_genCfg.smplRate);
 
 	double db = 0.0;
-	double db_step = 1.50;
+	double db_step = 1.50; /* 1.50 dB step (at least, maybe more) */
 	double db_step_inc = 0.125;
 	for (int i = 0; i < 16; i++)
 	{
