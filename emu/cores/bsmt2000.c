@@ -5,17 +5,17 @@
   Data East BSMT2000
   ==================
 
-  Core for BSMT2000 sound chip, adapted for libvgm, with fixes based on M1/MAME source.
+  Core for BSMT2000 sound chip, adapted for libvgm, with fixes based on M1/MAME/PinMAME source.
 
   The BSMT2000 is a custom TMS320C15 DSP with internal ROM and external sample ROM.
   It supports multiple PCM voices and a single ADPCM channel, with stereo output.
 
   FIXES:
-  - Register layout and handling match M1/MAME (9 registers per voice)
+  - Register layout and handling match M1/MAME/PinMAME (9 registers per voice)
   - Position, rate, and loop logic use fixed-point math (16.16)
   - Linear interpolation for PCM voices
-  - ADPCM/compressed channel handling is per M1/MAME
-  - Voice init matches M1/MAME
+  - ADPCM/compressed channel handling is per M1/MAME/PinMAME
+  - Voice init matches M1/MAME/PinMAME
 
 ***************************************************************************/
 
@@ -402,7 +402,7 @@ static void bsmt2000_set_log_cb(void* info, DEVCB_LOG func, void* param)
 static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
 {
     bsmt2000_state *chip = (bsmt2000_state *)param;
-    INT32 left[BSMT2000_SAMPLE_CHUNK], right[BSMT2000_SAMPLE_CHUNK];
+    INT64 left[BSMT2000_SAMPLE_CHUNK], right[BSMT2000_SAMPLE_CHUNK];
     bsmt2000_voice *voice;
     int samp, v, length = MIN(samples, BSMT2000_SAMPLE_CHUNK);
 
@@ -434,9 +434,9 @@ static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
             INT32 idx = pos >> 16;
             INT32 s1 = (INT8)base[idx];
             INT32 s2 = (INT8)base[idx+1];
-            INT32 sample = ((s1 * (0x10000 - (pos & 0xffff)) + s2 * (pos & 0xffff)) >> 16);
-            left[length-remaining-1]  += sample * lvol;
-            right[length-remaining-1] += sample * rvol;
+            INT32 sample = (s1 * (INT32)(0x10000 - (pos & 0xffff)) + (s2 * (INT32)(pos & 0xffff))) >> 16;
+            left[length-remaining-1]  += (sample << 8) * lvol;
+            right[length-remaining-1] += (sample << 8) * rvol;
             pos += rate;
             if (pos >= voice->loop_stop_position)
                 pos += voice->loop_start_position - voice->loop_stop_position;
@@ -460,15 +460,15 @@ static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
             while (remaining-- && pos < voice->loop_stop_position)
             {
                 UINT32 oldpos = pos;
-                left[length-remaining-1]  += (chip->adpcm_current * lvol) >> 8;
-                right[length-remaining-1] += (chip->adpcm_current * rvol) >> 8;
+                left[length-remaining-1]  += chip->adpcm_current * (lvol * 2);
+                right[length-remaining-1] += chip->adpcm_current * (rvol * 2);
 
                 pos += rate;
                 if ((oldpos ^ pos) & 0x8000)
                 {
-                    static const UINT8 delta_tab[] = { 58,58,58,58,77,102,128,154 };
+                    static const UINT8 delta_tab[16] = { 154, 154, 128, 102, 77, 58, 58, 58, 58, 58, 58, 58, 77, 102, 128, 154 };
                     int nibble = base[oldpos >> 16] >> ((~oldpos >> 13) & 4);
-                    int value = (INT8)(nibble << 4) >> 4;
+                    INT32 value = (nibble & 0xF) | ((nibble & 0x8) ? ~0xF : 0);
                     int temp;
 
                     temp = chip->adpcm_delta_n * value;
@@ -483,7 +483,7 @@ static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
                     else if (chip->adpcm_current < -32768)
                         chip->adpcm_current = -32768;
 
-                    chip->adpcm_delta_n = (chip->adpcm_delta_n * delta_tab[abs(value)]) >> 6;
+                    chip->adpcm_delta_n = (chip->adpcm_delta_n * delta_tab[value + 8]) >> 6;
                     if (chip->adpcm_delta_n > 2000)
                         chip->adpcm_delta_n = 2000;
                     else if (chip->adpcm_delta_n < 1)
@@ -496,8 +496,8 @@ static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
 
     // Output clamp and write
     for (samp = 0; samp < length; samp++) {
-        INT32 l = left[samp] >> 9;
-        INT32 r = right[samp] >> 9;
+        INT64 l = left[samp] >> 16;
+        INT64 r = right[samp] >> 16;
         l = (l > 32767) ? 32767 : (l < -32768) ? -32768 : l;
         r = (r > 32767) ? 32767 : (r < -32768) ? -32768 : r;
         outputs[0][samp] = l;
