@@ -17,6 +17,8 @@
   - ADPCM/compressed channel handling is per M1/MAME/PinMAME
   - Voice init matches M1/MAME/PinMAME
 
+  Modifications for PINMAME by Steve Ellenoff & Martin Adrian & Carsten Waechter
+
 ***************************************************************************/
 
 #include <stdlib.h>
