@@ -432,11 +432,11 @@ static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
 
         while (remaining--) {
             INT32 idx = pos >> 16;
-            INT32 s1 = (INT8)base[idx];
-            INT32 s2 = (INT8)base[idx+1];
+            INT32 s1 = ((INT8)base[idx] << 8);
+            INT32 s2 = ((INT8)base[idx+1] << 8);
             INT32 sample = (s1 * (INT32)(0x10000 - (pos & 0xffff)) + (s2 * (INT32)(pos & 0xffff))) >> 16;
-            left[length-remaining-1]  += (sample << 8) * lvol;
-            right[length-remaining-1] += (sample << 8) * rvol;
+            left[length-remaining-1]  += sample * lvol;
+            right[length-remaining-1] += sample * rvol;
             pos += rate;
             if (pos >= voice->loop_stop_position)
                 pos += voice->loop_start_position - voice->loop_stop_position;
