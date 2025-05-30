@@ -503,8 +503,8 @@ static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
         UINT8 *base = chip->sample_rom + voice->reg[BSMT2000_REG_BANK] * BSMT2000_ROM_BANKSIZE;
         UINT32 rate = voice->adjusted_rate;
         UINT32 pos = voice->position;
-        INT32 lvol = voice->reg[BSMT2000_REG_LEFTVOL]; // REG_LEFTVOL
-        INT32 rvol = chip->stereo ? voice->reg[BSMT2000_REG_RIGHTVOL] : lvol; // REG_RIGHTVOL
+        INT32 rvol = voice->reg[BSMT2000_REG_RIGHTVOL]; // REG_RIGHTVOL
+        INT32 lvol = chip->stereo ? voice->reg[BSMT2000_REG_LEFTVOL] : rvol; // REG_LEFTVOL
         if (chip->stereo && !chip->right_volume_set)
             rvol = lvol;
         int remaining = length;
@@ -532,8 +532,8 @@ static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
             UINT8 *base = chip->sample_rom + voice->reg[BSMT2000_REG_BANK] * BSMT2000_ROM_BANKSIZE;
             UINT32 rate = 0x02aa << 4;
             UINT32 pos = voice->position;
-            INT32 lvol = voice->reg[BSMT2000_REG_LEFTVOL];
-            INT32 rvol = chip->stereo ? voice->reg[BSMT2000_REG_RIGHTVOL] : lvol;
+            INT32 rvol = voice->reg[BSMT2000_REG_RIGHTVOL];
+            INT32 lvol = chip->stereo ? voice->reg[BSMT2000_REG_LEFTVOL] : rvol;
             if (chip->stereo && !chip->right_volume_set)
                 rvol = lvol;
             int remaining = length;
