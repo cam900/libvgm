@@ -272,6 +272,7 @@ protected:
 	void Cmd_OKIM6295_Reg(void);			// command B8 - OKIM6295 register write (Ofs8_Data8 with minor fixes)
 	void Cmd_K007232_Reg(void);				// command 41 - K007232 register write (Ofs8_Data8 with minor fixes)
 	void Cmd_BSMT2000_Reg(void);			// command 46 - BSMT2000 register write (16-bit data, 8-bit offset)
+	void Cmd_BSMT2000_Mode(void);			// command 47 - BSMT2000 mode change (8-bit data)
 	void Cmd_AY_Stereo(void);				// command 30 - set AY8910 stereo mask
 	
 	CPCONV* _cpcUTF16;	// UTF-16 LE -> UTF-8 codepage conversion

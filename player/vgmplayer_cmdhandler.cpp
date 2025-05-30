@@ -91,7 +91,7 @@
 	{0x2D, 0x03, &VGMPlayer::Cmd_Ofs8_Data8},           // 44 ICS2115 register write
 	{0x2E, 0x03, &VGMPlayer::Cmd_Ofs8_Data8},           // 45 MSM5232 register write
 	{0x2F, 0x04, &VGMPlayer::Cmd_BSMT2000_Reg},         // 46 BSMT2000 register write
-	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 47
+	{0x2F, 0x02, &VGMPlayer::Cmd_BSMT2000_Mode},        // 47 BSMT2000 mode change
 	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 48
 	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 49
 	{0xFF, 0x03, &VGMPlayer::Cmd_unknown},              // 4A
@@ -1276,6 +1276,18 @@ void VGMPlayer::Cmd_BSMT2000_Reg(void)
 		return;
 
 	WriteQSound_B(cDev, fData[0x01] & 0x7f, ReadBE16(&fData[0x02]));
+	return;
+}
+
+void VGMPlayer::Cmd_BSMT2000_Mode(void)
+{
+	UINT8 chipType = _CMD_INFO[fData[0x00]].chipType;
+	UINT8 chipID = (fData[0x01] & 0x80) >> 7;
+	CHIP_DEVICE* cDev = GetDevicePtr(chipType, chipID);
+	if (cDev == NULL || cDev->write8 == NULL)
+		return;
+
+	cDev->write8(cDev->base.defInf.dataPtr, 0x03, fData[0x01] & 0x7f);
 	return;
 }
 
