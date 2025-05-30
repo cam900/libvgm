@@ -89,7 +89,7 @@ struct _bsmt2000_state
 
     // Voices and ADPCM/compressed
     bsmt2000_voice voice[BSMT2000_MAX_VOICES];
-    bsmt2000_voice compressed; // For 11-voice model
+    UINT8 right_volume_set; // Right volume is set (from PinMAME)
     UINT8 voices;         // actual number of voices (usually 11 or 12)
     UINT8 stereo;         // stereo output enabled?
     UINT8 adpcm;          // ADPCM/compressed enabled?
@@ -231,6 +231,8 @@ static UINT8 device_start_bsmt2000(const DEV_GEN_CFG* cfg, DEV_INFO* retDevInf)
     chip->sample_rom_mask = 0x00;
     chip->total_banks = 0;
 
+    chip->right_volume_set = 0;
+
     chip->voices = 12;       // default: 12 PCM (may be overridden later)
     chip->stereo = 1;        // default: stereo enabled
     chip->adpcm = 1;         // default: ADPCM enabled
@@ -362,7 +364,7 @@ static void bsmt2000_write_data(void *info, UINT8 address, UINT16 data) {
     // Standard voices (interleaved register layout)
     if (address < 0x6d) {
         int voice_index;
-        int regindex = 6;
+        int regindex = BSMT2000_REG_TOTAL - 1;
         while (address < regmap[chip->mode][regindex])
             --regindex;
 
@@ -386,6 +388,9 @@ static void bsmt2000_write_data(void *info, UINT8 address, UINT16 data) {
             case BSMT2000_REG_LOOPEND: // REG_LOOPEND
                 voice->loop_stop_position = data << 16;
                 break;
+            case BSMT2000_REG_RIGHTVOL:
+                chip->right_volume_set = 1;
+                break;
         }
     }
     // Compressed/ADPCM channel (11-voice model only)
@@ -402,6 +407,7 @@ static void bsmt2000_write_data(void *info, UINT8 address, UINT16 data) {
         case 0x6e: // main right channel volume control, used when ADPCM is alreay playing
         case 0x74:
             voice->reg[BSMT2000_REG_RIGHTVOL] = data; // REG_RIGHTVOL
+            chip->right_volume_set = 1;
             break;
         case 0x75:
             voice->reg[BSMT2000_REG_CURRPOS] = data; // REG_CURRPOS
@@ -499,6 +505,8 @@ static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
         UINT32 pos = voice->position;
         INT32 lvol = voice->reg[BSMT2000_REG_LEFTVOL]; // REG_LEFTVOL
         INT32 rvol = chip->stereo ? voice->reg[BSMT2000_REG_RIGHTVOL] : lvol; // REG_RIGHTVOL
+        if (chip->stereo && !chip->right_volume_set)
+            rvol = lvol;
         int remaining = length;
 
         while (remaining--) {
@@ -526,6 +534,8 @@ static void bsmt2000_update(void *param, UINT32 samples, DEV_SMPL **outputs)
             UINT32 pos = voice->position;
             INT32 lvol = voice->reg[BSMT2000_REG_LEFTVOL];
             INT32 rvol = chip->stereo ? voice->reg[BSMT2000_REG_RIGHTVOL] : lvol;
+            if (chip->stereo && !chip->right_volume_set)
+                rvol = lvol;
             int remaining = length;
 
             while (remaining-- && pos < voice->loop_stop_position)
