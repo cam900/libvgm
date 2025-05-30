@@ -67,7 +67,7 @@ static const UINT8 regmap[8][7] = {
 /* ==== Internal Voice State ==== */
 typedef struct
 {
-    UINT16 reg[9]; // 9 registers per voice, match MAME/M1
+    UINT16 reg[BSMT2000_REG_TOTAL]; // 7 registers per voice, match PinMAME
     UINT32 position; // 16.16 fixed-point
     UINT32 loop_start_position;
     UINT32 loop_stop_position;
