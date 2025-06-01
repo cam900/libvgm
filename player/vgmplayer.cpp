@@ -26,6 +26,7 @@
 #include "../emu/cores/qsoundintf.h"
 #include "../emu/cores/scsp.h"
 #include "../emu/cores/msm5232.h"
+#include "../emu/cores/es5506.h"
 
 #include "dblk_compr.h"
 #include "../utils/StrUtils.h"
@@ -1326,8 +1327,13 @@ void VGMPlayer::GenerateDeviceConfig(void)
 				SaveDeviceConfig(sdCfg.cfgData, &devCfg, sizeof(DEV_GEN_CFG));
 				break;
 			case DEVID_ES5506:
-				devCfg.flags = _hdrBuffer[0xD5];	// output channels
-				SaveDeviceConfig(sdCfg.cfgData, &devCfg, sizeof(DEV_GEN_CFG));
+				{
+					ES5506_CFG esCfg;
+					
+					esCfg._genCfg = devCfg;
+					esCfg.output = _hdrBuffer[0xD5];	// output channels
+					SaveDeviceConfig(sdCfg.cfgData, &esCfg, sizeof(ES5506_CFG));
+				}
 				break;
 			case DEVID_SCSP:
 				if (devCfg.clock < 1000000)	// if < 1 MHz, then it's the sample rate, not the clock
