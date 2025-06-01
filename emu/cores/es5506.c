@@ -96,7 +96,6 @@ Ensoniq OTIS - ES5505                                            Ensoniq OTTO - 
 #define MAX_VOICES         32
 #define MAX_REGIONS        4
 #define ULAW_MAXBITS       8
-#define MAX_SAMPLE_CHUNK   10000
 
 #define VOLUME_ACC_BIT     20
 
@@ -187,7 +186,6 @@ typedef struct {
 
     INT16* ulaw_lookup;
     UINT32* volume_lookup;
-    INT32* scratch;
     UINT8 output_channels;
     UINT32 output_rate;
     
@@ -316,7 +314,6 @@ static UINT8 device_start_es5506(const ES5506_CFG *cfg, DEV_INFO* retDevInf) {
     }
 
     compute_tables(chip);
-    chip->scratch = malloc(2 * MAX_SAMPLE_CHUNK * sizeof(INT32));
 
     chip->active_voices = 31;
     chip->output_rate = chip->master_clock / (16 * (chip->active_voices + 1));
@@ -346,7 +343,6 @@ static void device_stop_es5506(void* info) {
 
     free(chip->ulaw_lookup);
     free(chip->volume_lookup);
-    free(chip->scratch);
     for (int i = 0; i < MAX_REGIONS; i++) free(chip->region_base[i]);
     free(chip);
 }
