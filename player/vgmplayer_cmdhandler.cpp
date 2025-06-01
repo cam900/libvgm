@@ -1373,7 +1373,7 @@ void VGMPlayer::Cmd_ES5506_Bank(void)
 		return;
 	
 	UINT8 bankvoice = fData[0x01] & 0x1F;
-	// fData[0x03] is ignored as we don't support ES5506 ROMs > 256 MB
+	// fData[0x03] is ignored as we don't support ES5506 ROMs > 512 MB
 	cDev->write8(cDev->base.defInf.dataPtr, 0x80 + bankvoice, fData[0x02]);
 	return;
 }
