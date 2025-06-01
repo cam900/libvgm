@@ -402,7 +402,7 @@ static UINT16 read_sample(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 addr)
 
 ***********************************************************************************************/
 
-inline INT32 interpolate(ES5506_Chip *chip, INT32 sample1, INT32 sample2, UINT64 accum)
+static INT32 interpolate(ES5506_Chip *chip, INT32 sample1, INT32 sample2, UINT64 accum)
 {
 	UINT32 shifted = 1 << chip->acc_shift;
 	UINT32 mask = shifted - 1;
