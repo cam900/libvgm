@@ -198,6 +198,11 @@ static void update_irq_state(ES5506_Chip *chip);
 static void update_internal_irq_state(ES5506_Chip *chip);
 static UINT16 read_sample(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 addr);
 static INT32 interpolate(ES5506_Chip *chip, INT32 sample1, INT32 sample2, UINT64 accum);
+static INT32 apply_lowpass(INT32 out, INT32 cutoff, INT32 in);
+static INT32 apply_highpass(INT32 out, INT32 cutoff, INT32 in, INT32 prev);
+static void update_pole(INT32 *pole, INT32 sample);
+static void update_2_pole(INT32 *prev, INT32 *pole, INT32 sample);
+static void apply_filters(ES5506_Chip* chip, ES5506_Voice* voice, INT32* sample);
 static void generate_irq(ES5506_Chip *chip, ES5506_Voice *voice, int v);
 static void generate_ulaw(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest);
 static void generate_pcm(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest);
@@ -205,7 +210,6 @@ static UINT64 get_volume(ES5506_Chip* chip, UINT32 volume);
 static INT64 get_sample(ES5506_Chip* chip, INT32 sample, UINT32 volume);
 static void generate_samples(ES5506_Chip* chip, INT32** outputs, int samples);
 static void update_envelopes(ES5506_Voice* voice);
-static void apply_filters(ES5506_Chip* chip, ES5506_Voice* voice, INT32* sample);
 static void compute_tables(ES5506_Chip* chip);
 static void es5506_check_for_end_forward(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 *accum);
 static void es5506_check_for_end_reverse(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 *accum);
@@ -453,8 +457,8 @@ static void generate_ulaw(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest)
 				update_envelopes(voice);
 
 			// apply volumes and add
-			dest[0] += get_sample(chip, val1, voice->lvol) >> 7;
-			dest[1] += get_sample(chip, val1, voice->rvol) >> 7;
+			dest[0] += get_sample(chip, val1, voice->lvol);
+			dest[1] += get_sample(chip, val1, voice->rvol);
 
 			// check for loop end
 			if (chip->sndtype)
@@ -486,8 +490,8 @@ static void generate_ulaw(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest)
 				update_envelopes(voice);
 
 			// apply volumes and add
-			dest[0] += get_sample(chip, val1, voice->lvol) >> 7;
-			dest[1] += get_sample(chip, val1, voice->rvol) >> 7;
+			dest[0] += get_sample(chip, val1, voice->lvol);
+			dest[1] += get_sample(chip, val1, voice->rvol);
 
 			// check for loop end
 			if (chip->sndtype)
@@ -541,8 +545,8 @@ static void generate_pcm(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest)
 				update_envelopes(voice);
 
 			// apply volumes and add
-			dest[0] += get_sample(chip, val1, voice->lvol) >> 7;
-			dest[1] += get_sample(chip, val1, voice->rvol) >> 7;
+			dest[0] += get_sample(chip, val1, voice->lvol);
+			dest[1] += get_sample(chip, val1, voice->rvol);
 
 			// check for loop end
 			if (chip->sndtype)
@@ -570,8 +574,8 @@ static void generate_pcm(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest)
 				update_envelopes(voice);
 
 			// apply volumes and add
-			dest[0] += get_sample(chip, val1, voice->lvol) >> 7;
-			dest[1] += get_sample(chip, val1, voice->rvol) >> 7;
+			dest[0] += get_sample(chip, val1, voice->lvol);
+			dest[1] += get_sample(chip, val1, voice->rvol);
 
 			// check for loop end
 			if (chip->sndtype)
@@ -823,62 +827,82 @@ static void es5505_check_for_end_reverse(ES5506_Chip *chip, ES5506_Voice *voice,
 }
 
 
-static void apply_filters(ES5506_Chip* chip, ES5506_Voice* voice, INT32* sample) {
-    INT32 temp = *sample;
-	INT32 filter_div_lp = (1 << FILTER_BIT);
-	INT32 filter_div_hp = filter_div_lp << 1;
-    
-    // Pole 1
-    temp = ((voice->k1 >> FILTER_SHIFT) * (temp - voice->o1n1) / filter_div_lp) + voice->o1n1;
-    voice->o1n1 = temp;
-    
-    // Pole 2
-    temp = ((voice->k1 >> FILTER_SHIFT) * (temp - voice->o2n1) / filter_div_lp) + voice->o2n1;
-    voice->o2n2 = voice->o2n1;
-    voice->o2n1 = temp;
-    
-    switch ((voice->control >> chip->lp_shift) & 3) {
-        case 0:
-            temp = temp - voice->o2n2 + 
-                 ((voice->k2 >> FILTER_SHIFT) * voice->o3n1) / filter_div_hp + voice->o3n1 / 2;
-            voice->o3n2 = voice->o3n1;
-            voice->o3n1 = temp;
-            
-            temp = temp - voice->o3n2 + 
-                 ((voice->k2 >> FILTER_SHIFT) * voice->o4n1) / filter_div_hp + voice->o4n1 / 2;
-            voice->o4n1 = temp;
-            break;
-            
-        case 1: // LP3
-            temp = ((voice->k1 >> FILTER_SHIFT) * (temp - voice->o3n1) / filter_div_lp) + voice->o3n1;
-            voice->o3n2 = voice->o3n1;
-            voice->o3n1 = temp;
-            
-            temp = temp - voice->o3n2 + 
-                 ((voice->k2 >> FILTER_SHIFT) * voice->o4n1) / filter_div_hp + voice->o4n1 / 2;
-            voice->o4n1 = temp;
-            break;
-            
-        case 2: // LP4
-            temp = ((voice->k2 >> FILTER_SHIFT) * (temp - voice->o3n1) / filter_div_lp) + voice->o3n1;
-            voice->o3n2 = voice->o3n1;
-            voice->o3n1 = temp;
-            
-            temp = ((voice->k2 >> FILTER_SHIFT) * (temp - voice->o4n1) / filter_div_lp) + voice->o4n1;
-            voice->o4n1 = temp;
-            break;
-            
-        case 3: // LP3 | LP4
-            temp = ((voice->k1 >> FILTER_SHIFT) * (temp - voice->o3n1) / filter_div_lp) + voice->o3n1;
-            voice->o3n2 = voice->o3n1;
-            voice->o3n1 = temp;
-            
-            temp = ((voice->k2 >> FILTER_SHIFT) * (temp - voice->o4n1) / filter_div_lp) + voice->o4n1;
-            voice->o4n1 = temp;
-            break;
-    }
-    
-    *sample = temp;
+// apply lowpass/highpass result
+static INT32 apply_lowpass(INT32 out, INT32 cutoff, INT32 in)
+{
+	return ((INT32)(cutoff >> FILTER_SHIFT) * (out - in) / (1 << FILTER_BIT)) + in;
+}
+
+static INT32 apply_highpass(INT32 out, INT32 cutoff, INT32 in, INT32 prev)
+{
+	return out - prev + ((INT32)(cutoff >> FILTER_SHIFT) * in) / (1 << (FILTER_BIT + 1)) + in / 2;
+}
+
+// update poles from outputs
+static void update_pole(INT32 *pole, INT32 sample)
+{
+	*pole = sample;
+}
+
+static void update_2_pole(INT32 *prev, INT32 *pole, INT32 sample)
+{
+	*prev = *pole;
+	*pole = sample;
+}
+
+static void apply_filters(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *sample)
+{
+	// pole 1 is always low-pass using K1
+	*sample = apply_lowpass(*sample, voice->k1, voice->o1n1);
+	update_pole(&voice->o1n1, *sample);
+
+	// pole 2 is always low-pass using K1
+	*sample = apply_lowpass(*sample, voice->k1, voice->o2n1);
+	update_2_pole(&voice->o2n2, &voice->o2n1, *sample);
+
+	// remaining poles depend on the current filter setting
+	switch ((voice->control >> chip->lp_shift) & 3)
+	{
+		case 0:
+			// pole 3 is high-pass using K2
+			*sample = apply_highpass(*sample, voice->k2, voice->o3n1, voice->o2n2);
+			update_2_pole(&voice->o3n2, &voice->o3n1, *sample);
+
+			// pole 4 is high-pass using K2
+			*sample = apply_highpass(*sample, voice->k2, voice->o4n1, voice->o3n2);
+			update_pole(&voice->o4n1, *sample);
+			break;
+
+		case 1: // LP3
+			// pole 3 is low-pass using K1
+			*sample = apply_lowpass(*sample, voice->k1, voice->o3n1);
+			update_2_pole(&voice->o3n2, &voice->o3n1, *sample);
+
+			// pole 4 is high-pass using K2
+			*sample = apply_highpass(*sample, voice->k2, voice->o4n1, voice->o3n2);
+			update_pole(&voice->o4n1, *sample);
+			break;
+
+		case 2: // LP4
+			// pole 3 is low-pass using K2
+			*sample = apply_lowpass(*sample, voice->k2, voice->o3n1);
+			update_2_pole(&voice->o3n2, &voice->o3n1, *sample);
+
+			// pole 4 is low-pass using K2
+			*sample = apply_lowpass(*sample, voice->k2, voice->o4n1);
+			update_pole(&voice->o4n1, *sample);
+			break;
+
+		case 3: // LP3 | LP4
+			// pole 3 is low-pass using K1
+			*sample = apply_lowpass(*sample, voice->k1, voice->o3n1);
+			update_2_pole(&voice->o3n2, &voice->o3n1, *sample);
+
+			// pole 4 is low-pass using K2
+			*sample = apply_lowpass(*sample, voice->k2, voice->o4n1);
+			update_pole(&voice->o4n1, *sample);
+			break;
+	}
 }
 
 static void update_envelopes(ES5506_Voice* voice) {
