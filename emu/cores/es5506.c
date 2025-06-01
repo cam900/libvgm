@@ -404,8 +404,8 @@ static UINT16 read_sample(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 addr)
 
 inline INT32 interpolate(ES5506_Chip *chip, INT32 sample1, INT32 sample2, UINT64 accum)
 {
-	const UINT32 shifted = 1 << chip->acc_shift;
-	const UINT32 mask = shifted - 1;
+	UINT32 shifted = 1 << chip->acc_shift;
+	UINT32 mask = shifted - 1;
 	accum &= mask & chip->accum_mask;
 	return (sample1 * (INT32)(shifted - accum) +
 			sample2 * (INT32)(accum)) >> chip->acc_shift;
@@ -664,9 +664,9 @@ static void generate_samples(ES5506_Chip* chip, INT32** buffers, int samples)
 			if (voice->start == voice->end)
 				voice->control |= CONTROL_STOP0;
 
-			const int voice_channel = (voice->control >> chip->ca_shift) & chip->ca_mask;
-			const int channel = voice_channel % chip->output_channels;
-			const int l = channel << 1;
+			int voice_channel = (voice->control >> chip->ca_shift) & chip->ca_mask;
+			int channel = voice_channel % chip->output_channels;
+			int l = channel << 1;
 
 			// generate from the appropriate source
 			if ((voice->control & CONTROL_CMPD) && chip->sndtype)
