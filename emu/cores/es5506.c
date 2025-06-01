@@ -209,10 +209,10 @@ static void generate_samples(ES5506_Chip* chip, INT32** outputs, int samples);
 static void update_envelopes(ES5506_Voice* voice);
 static void apply_filters(ES5506_Chip* chip, ES5506_Voice* voice, INT32* sample);
 static void compute_tables(ES5506_Chip* chip);
-static void es5506_check_for_end_forward(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 accum);
-static void es5506_check_for_end_reverse(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 accum);
-static void es5505_check_for_end_forward(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 accum);
-static void es5505_check_for_end_reverse(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 accum);
+static void es5506_check_for_end_forward(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 *accum);
+static void es5506_check_for_end_reverse(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 *accum);
+static void es5505_check_for_end_forward(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 *accum);
+static void es5505_check_for_end_reverse(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 *accum);
 
 // Device interface
 static UINT8 device_start_es5506(const ES5506_CFG *cfg, DEV_INFO* retDevInf);
@@ -462,9 +462,9 @@ static void generate_ulaw(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest)
 
 			// check for loop end
 			if (chip->sndtype)
-				es5506_check_for_end_forward(chip, voice, accum);
+				es5506_check_for_end_forward(chip, voice, &accum);
 			else
-				es5505_check_for_end_forward(chip, voice, accum);
+				es5505_check_for_end_forward(chip, voice, &accum);
 		}
 
 		// two cases: second case is backward direction
@@ -495,9 +495,9 @@ static void generate_ulaw(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest)
 
 			// check for loop end
 			if (chip->sndtype)
-				es5506_check_for_end_reverse(chip, voice, accum);
+				es5506_check_for_end_reverse(chip, voice, &accum);
 			else
-				es5505_check_for_end_reverse(chip, voice, accum);
+				es5505_check_for_end_reverse(chip, voice, &accum);
 		}
 	}
 	else
@@ -550,9 +550,9 @@ static void generate_pcm(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest)
 
 			// check for loop end
 			if (chip->sndtype)
-				es5506_check_for_end_forward(chip, voice, accum);
+				es5506_check_for_end_forward(chip, voice, &accum);
 			else
-				es5505_check_for_end_forward(chip, voice, accum);
+				es5505_check_for_end_forward(chip, voice, &accum);
 		}
 
 		// two cases: second case is backward direction
@@ -579,9 +579,9 @@ static void generate_pcm(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest)
 
 			// check for loop end
 			if (chip->sndtype)
-				es5506_check_for_end_reverse(chip, voice, accum);
+				es5506_check_for_end_reverse(chip, voice, &accum);
 			else
-				es5505_check_for_end_reverse(chip, voice, accum);
+				es5505_check_for_end_reverse(chip, voice, &accum);
 		}
 	}
 	else
@@ -687,10 +687,10 @@ static void generate_samples(ES5506_Chip* chip, INT32** buffers, int samples)
 	}
 }
 
-static void es5506_check_for_end_forward(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 accum)
+static void es5506_check_for_end_forward(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 *accum)
 {
 	// are we past the end?
-	if (accum > voice->end && !(voice->control & CONTROL_LEI))
+	if (*accum > voice->end && !(voice->control & CONTROL_LEI))
 	{
 		// generate interrupt if required
 		if (voice->control & CONTROL_IRQE)
@@ -706,30 +706,28 @@ static void es5506_check_for_end_forward(ES5506_Chip *chip, ES5506_Voice *voice,
 
 			// uni-directional looping
 			case CONTROL_LPE:
-				accum = (voice->start + (accum - voice->end)) & chip->accum_mask;
+				*accum = (voice->start + (*accum - voice->end)) & chip->accum_mask;
 				break;
 
 			// trans-wave looping
 			case CONTROL_BLE:
-				accum = (voice->start + (accum - voice->end)) & chip->accum_mask;
+				*accum = (voice->start + (*accum - voice->end)) & chip->accum_mask;
 				voice->control = (voice->control & ~CONTROL_LOOPMASK) | CONTROL_LEI;
 				break;
 
 			// bi-directional looping
 			case CONTROL_LPE | CONTROL_BLE:
-				accum = (voice->end - (accum - voice->end)) & chip->accum_mask;
+				*accum = (voice->end - (*accum - voice->end)) & chip->accum_mask;
 				voice->control ^= CONTROL_DIR;
 				break;
 		}
 	}
-    
-    voice->accum = accum;
 }
 
-static void es5506_check_for_end_reverse(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 accum)
+static void es5506_check_for_end_reverse(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 *accum)
 {
 	// are we past the end?
-	if (accum < voice->start && !(voice->control & CONTROL_LEI))
+	if (*accum < voice->start && !(voice->control & CONTROL_LEI))
 	{
 		// generate interrupt if required
 		if (voice->control & CONTROL_IRQE)
@@ -745,31 +743,29 @@ static void es5506_check_for_end_reverse(ES5506_Chip *chip, ES5506_Voice *voice,
 
 			// uni-directional looping
 			case CONTROL_LPE:
-				accum = (voice->end - (voice->start - accum)) & chip->accum_mask;
+				*accum = (voice->end - (voice->start - *accum)) & chip->accum_mask;
 				break;
 
 			// trans-wave looping
 			case CONTROL_BLE:
-				accum = (voice->end - (voice->start - accum)) & chip->accum_mask;
+				*accum = (voice->end - (voice->start - *accum)) & chip->accum_mask;
 				voice->control = (voice->control & ~CONTROL_LOOPMASK) | CONTROL_LEI;
 				break;
 
 			// bi-directional looping
 			case CONTROL_LPE | CONTROL_BLE:
-				accum = (voice->start + (voice->start - accum)) & chip->accum_mask;
+				*accum = (voice->start + (voice->start - *accum)) & chip->accum_mask;
 				voice->control ^= CONTROL_DIR;
 				break;
 		}
 	}
-    
-    voice->accum = accum;
 }
 
 // ES5505 : BLE is ignored when LPE = 0
-static void es5505_check_for_end_forward(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 accum)
+static void es5505_check_for_end_forward(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 *accum)
 {
 	// are we past the end?
-	if (accum > voice->end)
+	if (*accum > voice->end)
 	{
 		// generate interrupt if required
 		if (voice->control & CONTROL_IRQE)
@@ -786,24 +782,22 @@ static void es5505_check_for_end_forward(ES5506_Chip *chip, ES5506_Voice *voice,
 
 			// uni-directional looping
 			case CONTROL_LPE:
-				accum = (voice->start + (accum - voice->end)) & chip->accum_mask;
+				*accum = (voice->start + (*accum - voice->end)) & chip->accum_mask;
 				break;
 
 			// bi-directional looping
 			case CONTROL_LPE | CONTROL_BLE:
-				accum = (voice->end - (accum - voice->end)) & chip->accum_mask;
+				*accum = (voice->end - (*accum - voice->end)) & chip->accum_mask;
 				voice->control ^= CONTROL_DIR;
 				break;
 		}
 	}
-    
-    voice->accum = accum;
 }
 
-static void es5505_check_for_end_reverse(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 accum)
+static void es5505_check_for_end_reverse(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 *accum)
 {
 	// are we past the end?
-	if (accum < voice->start)
+	if (*accum < voice->start)
 	{
 		// generate interrupt if required
 		if (voice->control & CONTROL_IRQE)
@@ -820,18 +814,16 @@ static void es5505_check_for_end_reverse(ES5506_Chip *chip, ES5506_Voice *voice,
 
 			// uni-directional looping
 			case CONTROL_LPE:
-				accum = (voice->end - (voice->start - accum)) & chip->accum_mask;
+				*accum = (voice->end - (voice->start - *accum)) & chip->accum_mask;
 				break;
 
 			// bi-directional looping
 			case CONTROL_LPE | CONTROL_BLE:
-				accum = (voice->start + (voice->start - accum)) & chip->accum_mask;
+				*accum = (voice->start + (voice->start - *accum)) & chip->accum_mask;
 				voice->control ^= CONTROL_DIR;
 				break;
 		}
 	}
-    
-    voice->accum = accum;
 }
 
 
@@ -975,7 +967,7 @@ static void es5506_write(void* info, UINT8 offset, UINT8 data) {
 						case 0x0: voice->control = chip->write_latch & 0xFFFF; break;
 						case 0x1: voice->start = chip->write_latch & 0xFFFFF800; break;
 						case 0x2: voice->end = chip->write_latch & 0xFFFFFF80; break;
-						case 0x3: voice->accum = chip->write_latch & chip->accum_mask; break;
+						case 0x3: voice->accum = chip->write_latch & 0xFFFFFFFF; break;
 						case 0x4: voice->o4n1 = (INT32)(chip->write_latch << 14) >> 14; break;
 						case 0x5: voice->o3n1 = (INT32)(chip->write_latch << 14) >> 14; break;
 						case 0x6: voice->o3n2 = (INT32)(chip->write_latch << 14) >> 14; break;
@@ -1053,8 +1045,8 @@ static void es5506_write(void* info, UINT8 offset, UINT8 data) {
 							voice->rvol = ((voice->rvol & ~mask) | (value & mask)) & 0xFF00;
 							voice->rvol >>= 8;
 							break;
-						case 0xA: voice->accum = ((voice->accum & ~(mask << 16)) | ((value & mask) << 16)) & chip->accum_mask; break;
-						case 0xB: voice->accum = ((voice->accum & ~mask) | (value & mask)) & chip->accum_mask; break;
+						case 0xA: voice->accum = ((voice->accum & ~(mask << 16)) | ((value & mask) << 16)) & 0x1FFFFFFF; break;
+						case 0xB: voice->accum = ((voice->accum & ~mask) | (value & mask)) & 0x1FFFFFFF; break;
 					}
 					break;
 					
