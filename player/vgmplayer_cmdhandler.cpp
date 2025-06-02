@@ -236,7 +236,7 @@
 	{0x24, 0x04, &VGMPlayer::Cmd_Port_Ofs8_Data8},      // D5 ES5503 register write
 	{0x25, 0x04, &VGMPlayer::Cmd_Ofs8_Data16},          // D6 ES5506 register write (16-bit data)
 	{0x2C, 0x03, &VGMPlayer::Cmd_K005289_Reg},          // D7 K005289 register write
-	{0x25, 0x03, &VGMPlayer::Cmd_ES5506_Bank},          // D8 ES5506 bank
+	{0xFF, 0x04, &VGMPlayer::Cmd_unknown},              // D8
 	{0xFF, 0x04, &VGMPlayer::Cmd_unknown},              // D9
 	{0xFF, 0x04, &VGMPlayer::Cmd_unknown},              // DA
 	{0xFF, 0x04, &VGMPlayer::Cmd_unknown},              // DB
@@ -1103,7 +1103,7 @@ void VGMPlayer::Cmd_Ofs8_Data16(void)
 	if (cDev == NULL || cDev->writeD16 == NULL)
 		return;
 	
-	UINT16 value = ReadLE16(&fData[0x02]);
+	UINT16 value = ReadBE16(&fData[0x02]);
 	cDev->writeD16(cDev->base.defInf.dataPtr, fData[0x01] & 0x7F, value);
 	return;
 }
@@ -1361,20 +1361,6 @@ void VGMPlayer::Cmd_YMW_Bank(void)
 			cDev->write8(cDev->base.defInf.dataPtr, 0x12, fData[0x02] / 0x08);
 	}
 	
-	return;
-}
-
-void VGMPlayer::Cmd_ES5506_Bank(void)
-{
-	UINT8 chipType = _CMD_INFO[fData[0x00]].chipType;
-	UINT8 chipID = (fData[0x01] & 0x80) >> 7;
-	CHIP_DEVICE* cDev = GetDevicePtr(chipType, chipID);
-	if (cDev == NULL || cDev->write8 == NULL)
-		return;
-	
-	UINT8 bankvoice = fData[0x01] & 0x1F;
-	// fData[0x03] is ignored as we don't support ES5506 ROMs > 512 MB
-	cDev->write8(cDev->base.defInf.dataPtr, 0x80 + bankvoice, fData[0x02]);
 	return;
 }
 

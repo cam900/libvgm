@@ -1331,7 +1331,7 @@ void VGMPlayer::GenerateDeviceConfig(void)
 					ES5506_CFG esCfg;
 					
 					esCfg._genCfg = devCfg;
-					esCfg.output = _hdrBuffer[0xD5];	// output channels
+					esCfg.output = /*_hdrBuffer[0xD5]*/1;	// output channels, crash when larger than 1
 					SaveDeviceConfig(sdCfg.cfgData, &esCfg, sizeof(ES5506_CFG));
 				}
 				break;

@@ -659,7 +659,7 @@ static void generate_samples(ES5506_Chip* chip, INT32** buffers, int samples)
 	for (int s = 0; s < samples; s++)
 	{
 		// loop over voices
-		INT32 cursample[12] = { 0 };
+		INT32 cursample[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		for (int v = 0; v <= chip->active_voices; v++)
 		{
 			ES5506_Voice *voice = &chip->voice[v];
@@ -935,7 +935,7 @@ static void update_envelopes(ES5506_Voice* voice) {
 
 static void es5506_write(void* info, UINT8 offset, UINT8 data) {
     ES5506_Chip* chip = (ES5506_Chip*)info;
-	if (offset & 0x80)
+	if (offset & 0x40)
 	{
 		ES5506_Voice* voice = &chip->voice[offset & 0x1F];
 		voice->exbank = data;
@@ -1037,8 +1037,8 @@ static void es5506_write(void* info, UINT8 offset, UINT8 data) {
 		else
 		{
 			UINT32 shift = 8 * (offset & 1);
-			UINT32 mask = 0xFF << shift;
-			UINT32 value = data << shift;
+			UINT32 mask = 0xFF << (8 - shift);
+			UINT32 value = data << (8 - shift);
 
 			switch (chip->current_page & 0x60) {
 				case 0x00:
@@ -1114,8 +1114,6 @@ static void es5506_write(void* info, UINT8 offset, UINT8 data) {
 					chip->current_page = ((chip->current_page & ~mask) | (value & mask)) & 0x7F;
 					break;
 			}
-
-			chip->write_latch = 0;
 		}
 	}
 }
@@ -1252,16 +1250,31 @@ static UINT8 es5506_read(void* info, UINT8 offset) {
 				break;
 		}
 
-		return (value >> ((offset & 1)*8)) & 0xFF;
+		return (value >> (8 - (offset & 1)*8)) & 0xFF;
 	}
 }
 
 static void es5505_write(void* info, UINT8 offset, UINT16 data) {
     ES5506_Chip* chip = (ES5506_Chip*)info;
 	if (chip->sndtype)
+	{
+		offset &= ~1;
+		switch (offset & 2)
+		{
+			case 0:
+				es5506_write(info, offset | 0, data >> 8);
+				es5506_write(info, offset | 1, data & 0xff);
+				break;
+			case 2:
+				es5506_write(info, offset | 0, data >> 8);
+				es5506_write(info, offset | 1, data & 0xff);
+				break;
+		}
 		return;
+	}
 
     ES5506_Voice* voice = &chip->voice[chip->current_page & 0x1F];
+	offset >>= 1;
 
     switch (chip->current_page & 0x60) {
         case 0x00:

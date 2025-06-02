@@ -274,7 +274,6 @@ protected:
 	void Cmd_BSMT2000_Reg(void);			// command 46 - BSMT2000 register write (16-bit data, 8-bit offset)
 	void Cmd_BSMT2000_Mode(void);			// command 47 - BSMT2000 mode change (8-bit data)
 	void Cmd_AY_Stereo(void);				// command 30 - set AY8910 stereo mask
-	void Cmd_ES5506_Bank(void);				// command D8 - ES5506 bank write (Ofs8_Data16 with remapping)
 	
 	CPCONV* _cpcUTF16;	// UTF-16 LE -> UTF-8 codepage conversion
 	DEV_LOGGER _logger;
