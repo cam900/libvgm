@@ -656,6 +656,8 @@ static void generate_samples(ES5506_Chip* chip, INT32** buffers, int samples)
 		for (int v = 0; v <= chip->active_voices; v++)
 		{
 			ES5506_Voice *voice = &chip->voice[v];
+			if (voice->Muted)
+				continue;
 
 			// special case: if end == start, stop the voice
 			if (voice->start == voice->end)
