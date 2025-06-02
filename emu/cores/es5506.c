@@ -297,7 +297,7 @@ static UINT8 device_start_es5506(const ES5506_CFG *cfg, DEV_INFO* retDevInf) {
 
     chip->master_clock = cfg->_genCfg.clock;
 	chip->irqv = 0x80;
-    chip->output_channels = /*(cfg->output & 0x0F) ? (cfg->output & 0x0F) :*/ 1;
+    chip->output_channels = (cfg->output & 0x0F) ? (cfg->output & 0x0F) : 1;
     chip->sndtype = cfg->_genCfg.flags & 0x01;
 
 	// set configurations
