@@ -209,7 +209,7 @@ static void generate_pcm(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest);
 static UINT64 get_volume(ES5506_Chip* chip, UINT32 volume);
 static INT64 get_sample(ES5506_Chip* chip, INT32 sample, UINT32 volume);
 static void generate_samples(ES5506_Chip* chip, INT32** outputs, int samples);
-static void update_envelopes(ES5506_Voice* voice);
+static void update_envelopes(ES5506_Chip *chip, ES5506_Voice* voice);
 static void compute_tables(ES5506_Chip* chip);
 static void es5506_check_for_end_forward(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 *accum);
 static void es5506_check_for_end_reverse(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 *accum);
@@ -297,7 +297,7 @@ static UINT8 device_start_es5506(const ES5506_CFG *cfg, DEV_INFO* retDevInf) {
 
     chip->master_clock = cfg->_genCfg.clock;
 	chip->irqv = 0x80;
-    chip->output_channels = (cfg->output & 0x0F) ? (cfg->output & 0x0F) : 1;
+    chip->output_channels = /*(cfg->output & 0x0F) ? (cfg->output & 0x0F) :*/ 1;
     chip->sndtype = cfg->_genCfg.flags & 0x01;
 
 	// set configurations
@@ -425,7 +425,6 @@ static void generate_ulaw(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest)
 {
 	if (!chip->sndtype)
 	{
-		generate_pcm(chip, voice, dest);
 		return;
 	}
 	UINT32 freqcount = voice->freqcount;
@@ -454,17 +453,14 @@ static void generate_ulaw(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest)
 
 			// update filters/volumes
 			if (voice->ecount != 0)
-				update_envelopes(voice);
+				update_envelopes(chip, voice);
 
 			// apply volumes and add
 			dest[0] += get_sample(chip, val1, voice->lvol);
 			dest[1] += get_sample(chip, val1, voice->rvol);
 
 			// check for loop end
-			if (chip->sndtype)
-				es5506_check_for_end_forward(chip, voice, &accum);
-			else
-				es5505_check_for_end_forward(chip, voice, &accum);
+			es5506_check_for_end_forward(chip, voice, &accum);
 		}
 
 		// two cases: second case is backward direction
@@ -487,24 +483,21 @@ static void generate_ulaw(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest)
 
 			// update filters/volumes
 			if (voice->ecount != 0)
-				update_envelopes(voice);
+				update_envelopes(chip, voice);
 
 			// apply volumes and add
 			dest[0] += get_sample(chip, val1, voice->lvol);
 			dest[1] += get_sample(chip, val1, voice->rvol);
 
 			// check for loop end
-			if (chip->sndtype)
-				es5506_check_for_end_reverse(chip, voice, &accum);
-			else
-				es5505_check_for_end_reverse(chip, voice, &accum);
+			es5506_check_for_end_reverse(chip, voice, &accum);
 		}
 	}
 	else
 	{
 		// if we stopped, process any additional envelope
 		if (voice->ecount != 0)
-			update_envelopes(voice);
+			update_envelopes(chip, voice);
 	}
 
 	voice->accum = accum;
@@ -542,7 +535,7 @@ static void generate_pcm(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest)
 
 			// update filters/volumes
 			if (voice->ecount != 0)
-				update_envelopes(voice);
+				update_envelopes(chip, voice);
 
 			// apply volumes and add
 			dest[0] += get_sample(chip, val1, voice->lvol);
@@ -571,7 +564,7 @@ static void generate_pcm(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest)
 
 			// update filters/volumes
 			if (voice->ecount != 0)
-				update_envelopes(voice);
+				update_envelopes(chip, voice);
 
 			// apply volumes and add
 			dest[0] += get_sample(chip, val1, voice->lvol);
@@ -588,7 +581,7 @@ static void generate_pcm(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *dest)
 	{
 		// if we stopped, process any additional envelope
 		if (voice->ecount != 0)
-			update_envelopes(voice);
+			update_envelopes(chip, voice);
 	}
 
 	voice->accum = accum;
@@ -905,28 +898,31 @@ static void apply_filters(ES5506_Chip *chip, ES5506_Voice *voice, INT32 *sample)
 	}
 }
 
-static void update_envelopes(ES5506_Voice* voice) {
-    voice->ecount--;
-    
-    if (voice->lvramp) {
-        voice->lvol += (INT8)voice->lvramp;
-        voice->lvol = CLAMP(voice->lvol, 0, 0xFFFF);
-    }
-    if (voice->rvramp) {
-        voice->rvol += (INT8)voice->rvramp;
-        voice->rvol = CLAMP(voice->rvol, 0, 0xFFFF);
-    }
-    
-    if (voice->k1ramp && ((INT32)voice->k1ramp >= 0 || !(voice->filtcount & 7))) {
-        voice->k1 += (INT8)voice->k1ramp;
-        voice->k1 = CLAMP(voice->k1, 0, 0xFFFF);
-    }
-    if (voice->k2ramp && ((INT32)voice->k2ramp >= 0 || !(voice->filtcount & 7))) {
-        voice->k2 += (INT8)voice->k2ramp;
-        voice->k2 = CLAMP(voice->k2, 0, 0xFFFF);
-    }
-    
-    voice->filtcount++;
+static void update_envelopes(ES5506_Chip *chip, ES5506_Voice* voice) {
+	if (chip->sndtype)
+	{
+		voice->ecount--;
+
+		if (voice->lvramp) {
+			voice->lvol += (INT8)voice->lvramp;
+			voice->lvol = CLAMP(voice->lvol, 0, 0xFFFF);
+		}
+		if (voice->rvramp) {
+			voice->rvol += (INT8)voice->rvramp;
+			voice->rvol = CLAMP(voice->rvol, 0, 0xFFFF);
+		}
+
+		if (voice->k1ramp && ((INT32)voice->k1ramp >= 0 || !(voice->filtcount & 7))) {
+			voice->k1 += (INT8)voice->k1ramp;
+			voice->k1 = CLAMP(voice->k1, 0, 0xFFFF);
+		}
+		if (voice->k2ramp && ((INT32)voice->k2ramp >= 0 || !(voice->filtcount & 7))) {
+			voice->k2 += (INT8)voice->k2ramp;
+			voice->k2 = CLAMP(voice->k2, 0, 0xFFFF);
+		}
+
+		voice->filtcount++;
+	}
 }
 
 //-------------------------------------------------
