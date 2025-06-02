@@ -397,7 +397,7 @@ static void es5506_pcm_update(void* param, UINT32 samples, DEV_SMPL** outputs) {
 static UINT16 read_sample(ES5506_Chip *chip, ES5506_Voice *voice, UINT64 addr)
 {
 	UINT8 bank = (voice->control >> chip->bank_shift) & chip->bank_mask;
-	return chip->region_base[bank][((voice->exbank << 20) + addr) & (chip->region_size[bank] - 1)];
+	return chip->region_base[bank][((voice->exbank << 20) + addr) & ((chip->region_size[bank] >> 1) - 1)];
 }
 
 /**********************************************************************************************
